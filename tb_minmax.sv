@@ -6,26 +6,27 @@
 
 `timescale 1ns / 1ns
 
-//`define DEBUG
+// `define DEBUG
 
 module tb_minmax();
 
-    localparam integer W            = 12;
+    localparam integer W            = 5;
     localparam integer NI           = 9;
-    localparam integer CFG          = 0; // 0= output both value and index, 1= only value
+    localparam integer OUT_CFG      = 0; // 0= output both value and index, 1= only value
+    localparam integer MM_CFG       = 0; // 0= both min/max, 1= only min, 2= only max
     localparam integer IDXW         = $clog2(NI);
-    localparam integer NUM_TESTS    = 1250; // test will take NUM_TESTS*del*2*2 ns to complete
+    localparam integer NUM_TESTS    = 10;
 
     logic [NI*W-1 : 0] x;
     logic us_sel, min_max_sel;
     logic [W-1:0] result;
     logic [IDXW-1:0] index;
 
-    minmax #(.W(W), .NI(NI), .IDXW(IDXW), .CFG(CFG)) u_DUT (.*);
+    minmax #(.W(W), .NI(NI), .IDXW(IDXW), .OUT_CFG(OUT_CFG), .MM_CFG(MM_CFG)) u_DUT (.*);
 
     time del = 1ns;
     initial begin
-        static int error = 0;
+        static int errormin = 0, errormax = 0;
 
         logic [W-1:0]       ar;
         logic [NI*W-1 : 0]  arand;
@@ -107,58 +108,69 @@ module tb_minmax();
                     end
                 end
 
-                min_max_sel = 0;
                 x = arand;
 
-                if(us_sel==1'b1) begin // signed
+                if(MM_CFG==0 || MM_CFG==1) begin
+                    min_max_sel = 0;
                     #del;
-                    assert($signed(result) == $signed(min) && ((CFG == 0) && index == idxmin) || (CFG == 1))
-                        `ifndef DEBUG
-                            ;
-                        `else 
-                                $display("PASS"); 
-                            else begin 
-                                $display("FAIL"); $display("result: ", $signed(result), " index: ", index, " min: ", $signed(min), " idxmin: ", idxmin); error++;
-                            end
-                        `endif
 
+                    // checking min
+                    if(us_sel==1'b1) begin // signed
+                        assert($signed(result) == $signed(min) && ((OUT_CFG == 0) && index == idxmin) || (OUT_CFG == 1))
+                            `ifndef DEBUG
+                                ;
+                            `else
+                                    $display("PASS"); 
+                                else begin 
+                                    $display("FAIL"); $display("result: ", $signed(result), " index: ", index, " min: ", $signed(min), " idxmin: ", idxmin); errormin++;
+                                end
+                            `endif
+                    end else begin // unsigned
+                        assert($unsigned(result) == $unsigned(min) && ((OUT_CFG == 0) && index == idxmin) || (OUT_CFG == 1))
+                            `ifndef DEBUG
+                                ;
+                            `else
+                                    $display("PASS");
+                                else begin 
+                                    $display("FAIL"); $display("result: ", $unsigned(result), " index: ", index, " min: ", $unsigned(min), " idxmin: ", idxmin); errormin++;
+                                end
+                            `endif
+                    end
+                end
+
+                if(MM_CFG==0 || MM_CFG==2) begin
                     min_max_sel = 1;
                     #del;
-                    assert($signed(result) == $signed(max) && ((CFG == 0) && index == idxmax) || (CFG == 1))
-                        `ifndef DEBUG
-                            ;
-                        `else
-                                $display("PASS");
-                            else begin 
-                                $display("FAIL"); $display("result: ", $signed(result), " index: ", index, " max: ", $signed(max), " idxmax: ", idxmax); error++;
-                            end
-                        `endif
-                end else begin // unsigned
-                    #del;
-                    assert($unsigned(result) == $unsigned(min) && ((CFG == 0) && index == idxmin) || (CFG == 1))
-                        `ifndef DEBUG
-                            ;
-                        `else 
-                                $display("PASS"); 
-                            else begin 
-                                $display("FAIL"); $display("result: ", $unsigned(result), " index: ", index, " min: ", $unsigned(min), " idxmin: ", idxmin); error++;
-                            end
-                        `endif
 
-                    min_max_sel = 1;
-                    #del;
-                    assert($unsigned(result) == $unsigned(max) && ((CFG == 0) && index == idxmax) || (CFG == 1))
-                        `ifndef DEBUG
-                            ;
-                        `else 
-                                $display("PASS");
-                            else begin 
-                                $display("FAIL"); $display("result: ", $unsigned(result), " index: ", index, " max: ", $unsigned(max), " idxmax: ", idxmax); error++;
-                            end
-                        `endif
+                    // checking max
+                    if(us_sel==1'b1) begin // signed
+                        assert($signed(result) == $signed(max) && ((OUT_CFG == 0) && index == idxmax) || (OUT_CFG == 1))
+                            `ifndef DEBUG
+                                ;
+                            `else
+                                    $display("PASS");
+                                else begin 
+                                    $display("FAIL"); $display("result: ", $signed(result), " index: ", index, " max: ", $signed(max), " idxmax: ", idxmax); errormax++;
+                                end
+                            `endif
+                    end else begin // unsigned
+                        assert($unsigned(result) == $unsigned(max) && ((OUT_CFG == 0) && index == idxmax) || (OUT_CFG == 1))
+                            `ifndef DEBUG
+                                ;
+                            `else
+                                    $display("PASS");
+                                else begin 
+                                    $display("FAIL"); $display("result: ", $unsigned(result), " index: ", index, " max: ", $unsigned(max), " idxmax: ", idxmax); errormax++;
+                                end
+                            `endif
+                    end
                 end
             end
-            $display("UN/SIGNED ", us_sel, " ERRORS ", error, "/", NUM_TESTS*2*2);
+
+            if(MM_CFG==0 || MM_CFG==1)
+                $display("MIN - UN/SIGNED ", us_sel, " ERRORS ", errormin, "/", NUM_TESTS*2);
+            if(MM_CFG==0 || MM_CFG==2)
+                $display("MAX - UN/SIGNED ", us_sel, " ERRORS ", errormax, "/", NUM_TESTS*2);
         end
     end
 
