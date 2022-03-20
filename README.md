@@ -18,12 +18,12 @@ To provide signed input do as follows:
 
 Notice that if you have two or more maximum/minimum values, the one with the smallest index is output.
 
-Parameter CFG can be set to 0, which will output both value and index, or 1 where only value is output.
+Parameters description:
+- OUT_CFG can be set to 0, which will output both value and index, or 1 where only value is output;
+- MM_CFG can be set to 0 which supports both computing min and max, 1 only min, 2 only max;
+- US_CFG can be set to 0 which supports both signed and unsigned computing, 1 only unisgned, 2 only signed.
+
 
 Following, the LUT usage when varying number of inputs (NI) and data size (W).
 Additionally, also CFG was changed to show the amount of resources saved when not providing the index as output.
 ![Min/Max resource usage](chart.png "Min/Max resource usage")
-
-Future improvements:
-- make selectable whether only unsigned or signed computation is needed (or both);
-- make selectable whether only min or max is needed (or both)

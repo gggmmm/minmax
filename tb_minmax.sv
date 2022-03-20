@@ -13,9 +13,10 @@ module tb_minmax();
     localparam integer W            = 5;
     localparam integer NI           = 9;
     localparam integer OUT_CFG      = 0; // 0= output both value and index, 1= only value
-    localparam integer MM_CFG       = 0; // 0= both min/max, 1= only min, 2= only max
+    localparam integer MM_CFG       = 1; // 0= support both min/max, 1= only min, 2= only max
+    localparam integer US_CFG       = 1; // 0= support both signed and unsigned, 1= only unsigned, 2= only signed
     localparam integer IDXW         = $clog2(NI);
-    localparam integer NUM_TESTS    = 10;
+    localparam integer NUM_TESTS    = 250;
 
     logic [NI*W-1 : 0] x;
     logic us_sel, min_max_sel;
@@ -26,17 +27,32 @@ module tb_minmax();
 
     time del = 1ns;
     initial begin
-        static int errormin = 0, errormax = 0;
+        static int errormins = 0, errormaxs = 0;
+        static int errorminu = 0, errormaxu = 0;
 
         logic [W-1:0]       ar;
         logic [NI*W-1 : 0]  arand;
         logic [W-1:0]       min, max, idxmin, idxmax;
 
-        for (int i = 0; i < 2; i++) begin
-            if (i==0)
-                us_sel = 1'b0; // 0 unsigned,
-            else
-                us_sel = 1'b1; // 1 signed
+        int num_of_loops;
+
+        if(US_CFG==0)
+            num_of_loops = 2;
+        else if(US_CFG==1 || US_CFG==2)
+            num_of_loops = 1;
+
+        for (int i = 0; i < num_of_loops; i++) begin
+            if(US_CFG==0) begin
+                if(i==0)
+                    us_sel = 1'b0;
+                else if(i==1)
+                    us_sel = 1'b1;
+            end else if(US_CFG==1 || US_CFG==2) begin
+                if(US_CFG==1)
+                    us_sel = 1'b0;
+                else if(US_CFG==2)
+                    us_sel = 1'b1;
+            end
 
             for( int j = 0; j < NUM_TESTS; j++ ) begin
                 `ifdef DEBUG $display("== TEST ",j," =="); `endif
@@ -110,7 +126,7 @@ module tb_minmax();
 
                 x = arand;
 
-                if(MM_CFG==0 || MM_CFG==1) begin
+                if(MM_CFG==0 || MM_CFG==1) begin // min
                     min_max_sel = 0;
                     #del;
 
@@ -122,7 +138,7 @@ module tb_minmax();
                             `else
                                     $display("PASS"); 
                                 else begin 
-                                    $display("FAIL"); $display("result: ", $signed(result), " index: ", index, " min: ", $signed(min), " idxmin: ", idxmin); errormin++;
+                                    $display("FAIL"); $display("result: ", $signed(result), " index: ", index, " min: ", $signed(min), " idxmin: ", idxmin); errormins++;
                                 end
                             `endif
                     end else begin // unsigned
@@ -132,13 +148,13 @@ module tb_minmax();
                             `else
                                     $display("PASS");
                                 else begin 
-                                    $display("FAIL"); $display("result: ", $unsigned(result), " index: ", index, " min: ", $unsigned(min), " idxmin: ", idxmin); errormin++;
+                                    $display("FAIL"); $display("result: ", $unsigned(result), " index: ", index, " min: ", $unsigned(min), " idxmin: ", idxmin); errorminu++;
                                 end
                             `endif
                     end
                 end
 
-                if(MM_CFG==0 || MM_CFG==2) begin
+                if(MM_CFG==0 || MM_CFG==2) begin // max
                     min_max_sel = 1;
                     #del;
 
@@ -150,7 +166,7 @@ module tb_minmax();
                             `else
                                     $display("PASS");
                                 else begin 
-                                    $display("FAIL"); $display("result: ", $signed(result), " index: ", index, " max: ", $signed(max), " idxmax: ", idxmax); errormax++;
+                                    $display("FAIL"); $display("result: ", $signed(result), " index: ", index, " max: ", $signed(max), " idxmax: ", idxmax); errormaxs++;
                                 end
                             `endif
                     end else begin // unsigned
@@ -160,17 +176,26 @@ module tb_minmax();
                             `else
                                     $display("PASS");
                                 else begin 
-                                    $display("FAIL"); $display("result: ", $unsigned(result), " index: ", index, " max: ", $unsigned(max), " idxmax: ", idxmax); errormax++;
+                                    $display("FAIL"); $display("result: ", $unsigned(result), " index: ", index, " max: ", $unsigned(max), " idxmax: ", idxmax); errormaxu++;
                                 end
                             `endif
                     end
                 end
             end
+        end
 
-            if(MM_CFG==0 || MM_CFG==1)
-                $display("MIN - UN/SIGNED ", us_sel, " ERRORS ", errormin, "/", NUM_TESTS*2);
-            if(MM_CFG==0 || MM_CFG==2)
-                $display("MAX - UN/SIGNED ", us_sel, " ERRORS ", errormax, "/", NUM_TESTS*2);
+        if(MM_CFG==0 || MM_CFG==1) begin // min
+            if(US_CFG==0 || US_CFG==2) // signed
+                $display("MIN - SIGNED . ERRORS ", errormins, "/", NUM_TESTS);
+            if(US_CFG==0 || US_CFG==1) // unsigned
+                $display("MIN - UNSIGNED ERRORS ", errorminu, "/", NUM_TESTS);
+        end
+
+        if(MM_CFG==0 || MM_CFG==2) begin
+            if(US_CFG==0 || US_CFG==2) // signed
+                $display("MAX - SIGNED . ERRORS ", errormaxs, "/", NUM_TESTS);
+            if(US_CFG==0 || US_CFG==1)
+                $display("MAX - UNSIGNED ERRORS ", errormaxu, "/", NUM_TESTS);
         end
     end
 
