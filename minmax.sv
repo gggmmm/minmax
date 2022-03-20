@@ -2,11 +2,11 @@
 
 module minmax #(
     parameter integer W         = 5,            // input data width
-    parameter integer NI        = 7,            // Number of inputs
+    parameter integer NI        = 64,            // Number of inputs
     parameter integer IDXW      = $clog2(NI),   // num. bits to represent and index
-    parameter integer OUT_CFG   = 0,            // 0= output both value and index, 1= only value
-    parameter integer MM_CFG    = 0,            // 0= both min max, 1= only min, 2=only max
-    localparam integer US_CFG   = 0             // 0= support both signed and unsigned, 1= only unsigned, 2= only signed
+    parameter integer OUT_CFG   = 1,            // 0= output both value and index, 1= only value
+    parameter integer MM_CFG    = 1,            // 0= both min max, 1= only min, 2=only max
+    parameter integer US_CFG    = 1             // 0= support both signed and unsigned, 1= only unsigned, 2= only signed
 )(
     input   logic [NI*W-1 : 0] x,
     input   logic us_sel, min_max_sel,

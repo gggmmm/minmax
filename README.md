@@ -25,5 +25,8 @@ Parameters description:
 
 
 Following, the LUT usage when varying number of inputs (NI) and data size (W).
-Additionally, also CFG was changed to show the amount of resources saved when not providing the index as output.
-![Min/Max resource usage](chart.png "Min/Max resource usage")
+![Min/Max resource usage](chart_varyingW.png "Min/Max resource usage")
+
+Next chart shows LUT resource usage when varying configurations.
+Strangely, when only signed or unsigned is used, no further resource is saved, rather more are used for NI=64.
+![Min/Max resource usage](chart_fixedW.png "Min/Max resource usage")
