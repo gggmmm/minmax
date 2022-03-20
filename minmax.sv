@@ -1,9 +1,10 @@
 `timescale 1ns / 1ns
 
 module minmax #(
-    parameter integer W     = 6,           // input data width
-    parameter integer NI    = 7,            // Number of inputs
-    parameter integer IDXW  = $clog2(NI)    // num. bits to represent and index
+    parameter integer W     = 10,            // input data width
+    parameter integer NI    = 17,            // Number of inputs
+    parameter integer IDXW  = $clog2(NI),   // num. bits to represent and index
+    parameter integer CFG   = 1             // 0= output both value and index, 1= only value
 )(
     input   logic [NI*W-1 : 0] x,
     input   logic us_sel, min_max_sel,
@@ -39,56 +40,87 @@ module minmax #(
                     if( (f_NumInputFromPreiousLevel(i, NI) % 2 == 0)   ||
                         (j+1) < (f_NumInputFromPreiousLevel(i, NI)-1)    ) begin : even_or_not_last
                         
-                        minmax2 #(IDXW, W) u_mm2(
+                        if(CFG==0)
+                            minmax2 #(IDXW, W, CFG) u_mm2(
+                                      .x            (x[W*(j+1)-1:W*j]           ),
+                                      .y            (x[W*(j+2)-1:W*(j+1)]       ),
+                                      .xi           (j                          ),
+                                      .yi           (j+1                        ),
+                                      .us_sel       (us_sel                     ),
+                                      .min_max_sel  (min_max_sel                ),
+                                      .result       (intermediate[i][j/2]       ),
+                                      .index        (intermediateIdx[i][j/2]    ) // same index as result
+                                    );
+                        else if(CFG==1)
+                            minmax2 #(IDXW, W, CFG) u_mm2(
                                   .x            (x[W*(j+1)-1:W*j]           ),
                                   .y            (x[W*(j+2)-1:W*(j+1)]       ),
-                                  .xi           (j                          ),
-                                  .yi           (j+1                        ),
                                   .us_sel       (us_sel                     ),
                                   .min_max_sel  (min_max_sel                ),
-                                  .result       (intermediate[i][j/2]       ),
-                                  .index        (intermediateIdx[i][j/2]    ) // same index as result
+                                  .result       (intermediate[i][j/2]       )
                                 );
                     end else begin : odd_and_last
                         // just skip, this result is alone and needs to be just moved to the next level
-                        PassThrough #(IDXW, W) u_pt(
-                            .value_in   (x[W*(j+1)-1:W*j]           ),
-                            .index_in   (j                          ),
-                            .result     (intermediate[i][j/2]       ),
-                            .index      (intermediateIdx[i][j/2]    )
-                        );
+                        if(CFG==0)
+                            PassThrough #(IDXW, W, CFG) u_pt(
+                                .value_in   (x[W*(j+1)-1:W*j]           ),
+                                .index_in   (j                          ),
+                                .result     (intermediate[i][j/2]       ),
+                                .index      (intermediateIdx[i][j/2]    )
+                            );
+                        else if(CFG==1)
+                            PassThrough #(IDXW, W, CFG) u_pt(
+                                .value_in   (x[W*(j+1)-1:W*j]           ),
+                                .result     (intermediate[i][j/2]       )
+                            );
                     end
                 end else begin : other_level // any other level, use intermediate variable
 
                     if( (f_NumInputFromPreiousLevel(i, NI) % 2 == 0) ||
                         (j+1) < (f_NumInputFromPreiousLevel(i, NI)-1)  ) begin : even_or_not_last
 
-                        minmax2 #(IDXW, W) u_mm2(
-                                  .x            (intermediate[i-1][j]       ),
-                                  .y            (intermediate[i-1][j+1]     ),
-                                  .xi           (intermediateIdx[i-1][j]    ), // same index as x
-                                  .yi           (intermediateIdx[i-1][j+1]  ), // same index as y
-                                  .us_sel       (us_sel                     ),
-                                  .min_max_sel  (min_max_sel                ),
-                                  .result       (intermediate[i][j/2]       ),
-                                  .index        (intermediateIdx[i][j/2]    )  // same index as result
-                                );
+                        if(CFG==0)
+                            minmax2 #(IDXW, W, CFG) u_mm2(
+                                      .x            (intermediate[i-1][j]       ),
+                                      .y            (intermediate[i-1][j+1]     ),
+                                      .xi           (intermediateIdx[i-1][j]    ), // same index as x
+                                      .yi           (intermediateIdx[i-1][j+1]  ), // same index as y
+                                      .us_sel       (us_sel                     ),
+                                      .min_max_sel  (min_max_sel                ),
+                                      .result       (intermediate[i][j/2]       ),
+                                      .index        (intermediateIdx[i][j/2]    )  // same index as result
+                                    );
+                        else if(CFG==1)
+                            minmax2 #(IDXW, W, CFG) u_mm2(
+                                      .x            (intermediate[i-1][j]       ),
+                                      .y            (intermediate[i-1][j+1]     ),
+                                      .us_sel       (us_sel                     ),
+                                      .min_max_sel  (min_max_sel                ),
+                                      .result       (intermediate[i][j/2]       )
+                                    );
                     end else begin : odd_and_last
                         // just skip, this result is alone and needs to be just moved to the next level
-                        PassThrough #(IDXW, W) u_pt(
-                            .value_in   (intermediate[i-1][j]   ),
-                            .index_in   (intermediateIdx[i-1][j]),
-                            .result     (intermediate[i][j/2]   ),
-                            .index      (intermediateIdx[i][j/2])
-                        );
+                        if(CFG==0)
+                            PassThrough #(IDXW, W, CFG) u_pt(
+                                .value_in   (intermediate[i-1][j]   ),
+                                .index_in   (intermediateIdx[i-1][j]),
+                                .result     (intermediate[i][j/2]   ),
+                                .index      (intermediateIdx[i][j/2])
+                            );
+                        else if(CFG==1)
+                            PassThrough #(IDXW, W, CFG) u_pt(
+                                .value_in   (intermediate[i-1][j]   ),
+                                .result     (intermediate[i][j/2]   )
+                            );
                     end
                 end
             end
         end
 
         // connecting with the outputs
-        assign result   = intermediate[treeDepth-1][0];
-        assign index    = intermediateIdx[treeDepth-1][0];
+        assign result = intermediate[treeDepth-1][0];
+        if(CFG==0)
+            assign index = intermediateIdx[treeDepth-1][0];
     endgenerate
 
 endmodule
@@ -96,7 +128,8 @@ endmodule
 // This is needed simply to have a better view in the schematic
 module PassThrough #(
     parameter IDXW  = 2,
-    parameter W     = 6
+    parameter W     = 6,
+    parameter CFG   = 0
 )(
     input   logic [W-1 : 0]       value_in,
     input   logic [IDXW-1 : 0]    index_in,
@@ -104,10 +137,12 @@ module PassThrough #(
     output  logic [W-1 : 0]       result,
     output  logic [IDXW-1 : 0]    index  
 );
-    begin
-        assign result   = value_in;
-        assign index    = index_in;
-    end
+    assign result = value_in;
+
+    generate
+        if (CFG==0)
+            assign index = index_in;
+    endgenerate
 endmodule // passThrough
 
 // This is the core of the minmax, does all the heavy lifting.
@@ -115,7 +150,8 @@ endmodule // passThrough
 // hence if x is equal to y, x index is passed forward.
 module minmax2 #(
     parameter IDXW  = 2,
-    parameter W     = 6
+    parameter W     = 6,
+    parameter CFG   = 0
 )(
     input   logic [W-1 : 0]     x, y,
     input   logic [IDXW-1 : 0]  xi, yi,
@@ -133,5 +169,8 @@ module minmax2 #(
                                                                                     : y
                                                     : $signed(x) > $signed(y)       ? x // signed, max
                                                                                     : y;
-    assign index = result == x ? xi : yi;
+    generate
+        if(CFG==0)
+            assign index = result == x ? xi : yi;
+    endgenerate
 endmodule

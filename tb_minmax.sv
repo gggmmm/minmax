@@ -12,6 +12,7 @@ module tb_minmax();
 
     localparam integer W            = 12;
     localparam integer NI           = 9;
+    localparam integer CFG          = 0; // 0= output both value and index, 1= only value
     localparam integer IDXW         = $clog2(NI);
     localparam integer NUM_TESTS    = 1250; // test will take NUM_TESTS*del*2*2 ns to complete
 
@@ -20,7 +21,7 @@ module tb_minmax();
     logic [W-1:0] result;
     logic [IDXW-1:0] index;
 
-    minmax #(W, NI) u_DUT (.*);
+    minmax #(.W(W), .NI(NI), .IDXW(IDXW), .CFG(CFG)) u_DUT (.*);
 
     time del = 1ns;
     initial begin
@@ -111,7 +112,7 @@ module tb_minmax();
 
                 if(us_sel==1'b1) begin // signed
                     #del;
-                    assert($signed(result) == $signed(min) && index == idxmin)
+                    assert($signed(result) == $signed(min) && ((CFG == 0) && index == idxmin) || (CFG == 1))
                         `ifndef DEBUG
                             ;
                         `else 
@@ -123,7 +124,7 @@ module tb_minmax();
 
                     min_max_sel = 1;
                     #del;
-                    assert($signed(result) == $signed(max) && index == idxmax)
+                    assert($signed(result) == $signed(max) && ((CFG == 0) && index == idxmax) || (CFG == 1))
                         `ifndef DEBUG
                             ;
                         `else
@@ -134,7 +135,7 @@ module tb_minmax();
                         `endif
                 end else begin // unsigned
                     #del;
-                    assert($unsigned(result) == $unsigned(min) && index == idxmin)
+                    assert($unsigned(result) == $unsigned(min) && ((CFG == 0) && index == idxmin) || (CFG == 1))
                         `ifndef DEBUG
                             ;
                         `else 
@@ -146,7 +147,7 @@ module tb_minmax();
 
                     min_max_sel = 1;
                     #del;
-                    assert($unsigned(result) == $unsigned(max) && index == idxmax)
+                    assert($unsigned(result) == $unsigned(max) && ((CFG == 0) && index == idxmax) || (CFG == 1))
                         `ifndef DEBUG
                             ;
                         `else 
