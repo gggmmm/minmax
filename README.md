@@ -15,3 +15,7 @@ Parameters description:
 
 Following, the LUT usage when varying number of inputs (NI) and data size (W).
 ![Min/Max resource usage](chart_varyingW.png "Min/Max resource usage")
+
+To use UVM with ModelSim:
+- download uvm 1.2
+- compile with: `path_to/uvm-1.2/src/uvm_pkg.sv +incdir+path_to/uvm-1.2/src +define+UVM_NO_DPI +define+UVM_NO_RELNOTES +define+UVM_NO_DEPRECATED +define+UVM_OBJECT_DO_NOT_NEED_CONSTRUCTOR`
